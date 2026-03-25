@@ -375,6 +375,10 @@ PROCEDURAL GENERATION (prefer over manual placement):
 - Create water with a simple animated plane + vertex displacement in the animation loop
 - Build roads/paths with curve-based extrusion (THREE.TubeGeometry along a CatmullRomCurve3)
 
+ERROR REPORTING (always include this):
+- Add this as the FIRST script in <head> before any other scripts:
+  <script>window.onerror=function(m,s,l){window.parent.postMessage({type:"scene-error",error:m+" (line "+l+")"},"*")};window.addEventListener("unhandledrejection",function(e){window.parent.postMessage({type:"scene-error",error:String(e.reason)},"*")})</script>
+
 RESPONSE RULES:
 - In your text response, ONLY describe what the scene contains and its features
 - NEVER mention file names, index.html, directories, or technical implementation details
