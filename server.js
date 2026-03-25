@@ -277,6 +277,18 @@ IMPORTANT RULES:
 - If the user asks for a game, include game logic, scoring, and controls
 - Background should be a nice gradient or dark color, NOT white
 
+PERFORMANCE RULES (critical):
+- Use WebGL2 renderer: new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" })
+- Keep total polygon count under 50,000 — use low-poly style, simple geometries
+- Use BufferGeometry, never Geometry
+- Reuse materials — create once, share across meshes
+- Limit shadow-casting lights to 1-2 max, use shadow map size 1024 max
+- Use InstancedMesh for repeated objects (trees, particles, buildings)
+- Limit draw calls — merge static geometries where possible
+- For particles use Points with BufferGeometry, not individual meshes
+- Set renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)) to cap on retina
+- Dispose textures/geometries/materials when replacing scenes
+
 RESPONSE RULES:
 - In your text response, ONLY describe what the scene contains and its features
 - NEVER mention file names, index.html, directories, or technical implementation details
@@ -318,6 +330,7 @@ Create or update the Three.js scene based on the latest user request. Write the 
               "--dangerously-skip-permissions",
               "--output-format", "stream-json",
               "--verbose",
+              "--max-turns", "3",
               "-p", systemPrompt,
             ];
             console.log("[claude] Spawning:", claudeArgs.join(" ").substring(0, 200) + "...");
