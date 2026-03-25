@@ -187,7 +187,7 @@ serve({
     }
 
     // Serve public static files
-    if (pathname.startsWith("/public/") || pathname.startsWith("/fonts/") || pathname.endsWith(".css") || pathname.endsWith(".js") || pathname.endsWith(".woff2") || pathname.endsWith(".png") || pathname.endsWith(".jpg") || pathname.endsWith(".svg") || pathname.endsWith(".ico")) {
+    if (pathname.startsWith("/public/") || pathname.startsWith("/fonts/") || pathname.startsWith("/libs/") || pathname.endsWith(".css") || pathname.endsWith(".js") || pathname.endsWith(".woff2") || pathname.endsWith(".png") || pathname.endsWith(".jpg") || pathname.endsWith(".svg") || pathname.endsWith(".ico")) {
       const filePath = pathname.startsWith("/public/")
         ? join(import.meta.dir, pathname)
         : join(import.meta.dir, "public", pathname);
@@ -317,8 +317,8 @@ serve({
 
 IMPORTANT RULES:
 - Create a single index.html file in the current directory
-- Use Three.js via CDN: https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js
-- Also include OrbitControls if needed via: https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js
+- Use Three.js from local path: /libs/three.min.js
+- Also include OrbitControls if needed from: /libs/OrbitControls.js
 - The scene should fill the entire viewport (100vw x 100vh)
 - Make it visually impressive with lighting, shadows, and animation
 - Use requestAnimationFrame for smooth animation loops
@@ -351,8 +351,9 @@ GEOMETRY OPTIMIZATION:
 - Chunk large worlds — only render geometry near the camera, dispose distant chunks
 
 PHYSICS & COLLISION (required for games/vehicles/interactive scenes):
-- Use cannon.js via CDN: https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js (sets window.CANNON globally)
+- Use cannon.js from local path: /libs/cannon.min.js (sets window.CANNON globally)
 - Load cannon.js with a regular <script> tag BEFORE your scene code — do NOT use ES module imports
+- NEVER use CDN URLs — all libraries are served locally from /libs/
 - Create a CANNON.World with gravity (0, -9.82, 0) and broadphase
 - Every solid object needs BOTH a Three.js mesh AND a CANNON.Body — sync positions each frame
 - Terrain: use CANNON.Heightfield from the same height data used for the Three.js geometry
