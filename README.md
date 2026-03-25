@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![OpenWorld](https://openworld.up.railway.app/og.png)
+[![OpenWorld](https://openworld.up.railway.app/og.png)](https://openworld.up.railway.app/)
 
 **AI-powered 3D scene creator — describe it, Claude builds it.**
 
