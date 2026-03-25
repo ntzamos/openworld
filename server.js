@@ -407,7 +407,7 @@ Create or update the Three.js scene based on the latest user request. Write the 
 
             await refreshClaudeToken();
 
-            const claudeModel = process.env.CLAUDE_MODEL || "claude-sonnet-4-6";
+            const claudeModel = process.env.CLAUDE_MODEL || "claude-opus-4-6";
             console.log("[claude] Model:", claudeModel);
             console.log("[claude] CWD:", sessionDir);
             console.log("[claude] Prompt size:", systemPrompt.length, "chars");
@@ -419,7 +419,6 @@ Create or update the Three.js scene based on the latest user request. Write the 
                 "--output-format", "stream-json",
                 "--verbose",
                 "--model", claudeModel,
-                "--max-turns", "3",
                 "-p", systemPrompt,
               ],
               {
