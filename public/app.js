@@ -401,30 +401,40 @@ function appendMessage(role, content) {
 
 let sceneErrors = [];
 
+// Listen for error messages posted from iframes
+window.addEventListener("message", (e) => {
+  if (e.data?.type === "scene-error") {
+    sceneErrors.push(e.data.error);
+    showErrorBanner();
+  }
+});
+
 function showScene(path) {
   sceneErrors = [];
-  sceneFrame.src = path;
+  hideErrorBanner();
   sceneFrame.classList.remove("hidden");
   emptyState.classList.add("hidden");
-  hideErrorBanner();
 
   sceneFrame.onload = () => {
     try {
       const iframeWindow = sceneFrame.contentWindow;
       if (!iframeWindow) return;
-      iframeWindow.onerror = (msg, _source, line) => {
-        console.error("[scene error]", msg, "at line", line);
-        sceneErrors.push(`${msg} (line ${line})`);
-        showErrorBanner();
-        return true;
-      };
-      iframeWindow.addEventListener("unhandledrejection", (e) => {
-        console.error("[scene promise error]", e.reason);
-        sceneErrors.push(String(e.reason));
-        showErrorBanner();
-      });
+
+      // Inject error catcher script
+      const script = iframeWindow.document.createElement("script");
+      script.textContent = `
+        window.onerror = function(msg, src, line) {
+          window.parent.postMessage({ type: "scene-error", error: msg + " (line " + line + ")" }, "*");
+        };
+        window.addEventListener("unhandledrejection", function(e) {
+          window.parent.postMessage({ type: "scene-error", error: String(e.reason) }, "*");
+        });
+      `;
+      iframeWindow.document.head.appendChild(script);
     } catch {}
   };
+
+  sceneFrame.src = path;
 }
 
 function showErrorBanner() {

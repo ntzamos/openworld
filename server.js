@@ -13,6 +13,10 @@ const PORT = process.env.PORT || 3000;
 const DATABASE_URL = process.env.DATABASE_URL || "postgres://openworld:openworld@localhost:5432/openworld";
 const SESSIONS_DIR = join(import.meta.dir, "sessions");
 const CREDENTIALS_PATH = join(homedir(), ".claude", ".credentials.json");
+const IS_DEV = !process.env.RAILWAY_ENVIRONMENT;
+const log = (...args) => { if (IS_DEV) log(...args); };
+const logErr = (...args) => { if (IS_DEV) logErr(...args); };
+const logWarn = (...args) => { if (IS_DEV) logWarn(...args); };
 
 // Claude OAuth constants
 const CLAUDE_TOKEN_URL = "https://platform.claude.com/v1/oauth/token";
@@ -38,7 +42,7 @@ function json(data, status = 200) {
 async function saveCredsToDb(oauthData) {
   const value = JSON.stringify(oauthData);
   await sql`INSERT INTO settings (key, value, updated_at) VALUES ('claude_oauth', ${value}, NOW()) ON CONFLICT (key) DO UPDATE SET value = ${value}, updated_at = NOW()`;
-  console.log("[auth] Credentials saved to database");
+  log("[auth] Credentials saved to database");
 }
 
 async function restoreCredsFromDb() {
@@ -54,17 +58,17 @@ async function restoreCredsFromDb() {
     try { credentials = JSON.parse(await readFile(CREDENTIALS_PATH, "utf8")); } catch { }
     credentials.claudeAiOauth = oauthData;
     await writeFile(CREDENTIALS_PATH, JSON.stringify(credentials, null, 2));
-    console.log("[auth] Credentials restored from database to", CREDENTIALS_PATH);
+    log("[auth] Credentials restored from database to", CREDENTIALS_PATH);
     return true;
   } catch (err) {
-    console.error("[auth] Failed to restore credentials from DB:", err);
+    logErr("[auth] Failed to restore credentials from DB:", err);
     return false;
   }
 }
 
 async function deleteCredsFromDb() {
   await sql`DELETE FROM settings WHERE key = 'claude_oauth'`;
-  console.log("[auth] Credentials deleted from database");
+  log("[auth] Credentials deleted from database");
 }
 
 async function generateSessionTitle(sessionId, userMessage) {
@@ -84,14 +88,14 @@ async function generateSessionTitle(sessionId, userMessage) {
       const data = JSON.parse(stdout.trim());
       const title = (data.result || "").trim().substring(0, 60) || userMessage.substring(0, 60);
       await sql`UPDATE sessions SET title = ${title} WHERE id = ${sessionId}`;
-      console.log("[title] Generated:", title);
+      log("[title] Generated:", title);
     } catch {
       // Fallback to truncated message
       const title = userMessage.substring(0, 60) + (userMessage.length > 60 ? "..." : "");
       await sql`UPDATE sessions SET title = ${title} WHERE id = ${sessionId}`;
     }
   } catch (err) {
-    console.error("[title] Generation failed:", err.message);
+    logErr("[title] Generation failed:", err.message);
     const title = userMessage.substring(0, 60) + (userMessage.length > 60 ? "..." : "");
     await sql`UPDATE sessions SET title = ${title} WHERE id = ${sessionId}`;
   }
@@ -111,13 +115,13 @@ async function refreshClaudeToken() {
     if (!oauth?.refreshToken || !oauth?.expiresAt) return;
     const expiresAt = new Date(oauth.expiresAt).getTime();
     if (Date.now() < expiresAt - 10 * 60 * 1000) return;
-    console.log("[auth] Claude token expiring soon, refreshing...");
+    log("[auth] Claude token expiring soon, refreshing...");
     const res = await fetch(CLAUDE_TOKEN_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ grant_type: "refresh_token", refresh_token: oauth.refreshToken, client_id: CLAUDE_CLIENT_ID }),
     });
-    if (!res.ok) { console.error("[auth] Token refresh failed:", res.status, await res.text()); return; }
+    if (!res.ok) { logErr("[auth] Token refresh failed:", res.status, await res.text()); return; }
     const tokens = await res.json();
     credentials.claudeAiOauth = {
       ...oauth,
@@ -127,8 +131,8 @@ async function refreshClaudeToken() {
     };
     await writeFile(CREDENTIALS_PATH, JSON.stringify(credentials, null, 2));
     await saveCredsToDb(credentials.claudeAiOauth);
-    console.log("[auth] Claude token refreshed successfully");
-  } catch (err) { console.error("[auth] Token refresh error:", err); }
+    log("[auth] Claude token refreshed successfully");
+  } catch (err) { logErr("[auth] Token refresh error:", err); }
 }
 
 const MIME_TYPES = {
@@ -408,9 +412,9 @@ Create or update the Three.js scene based on the latest user request. Write the 
             await refreshClaudeToken();
 
             const claudeModel = process.env.CLAUDE_MODEL || "claude-opus-4-6";
-            console.log("[claude] Model:", claudeModel);
-            console.log("[claude] CWD:", sessionDir);
-            console.log("[claude] Prompt size:", systemPrompt.length, "chars");
+            log("[claude] Model:", claudeModel);
+            log("[claude] CWD:", sessionDir);
+            log("[claude] Prompt size:", systemPrompt.length, "chars");
 
             const proc = spawn(
               [
@@ -440,10 +444,10 @@ Create or update the Three.js scene based on the latest user request. Write the 
                 const lines = stderrBuf.split("\n");
                 stderrBuf = lines.pop() || "";
                 for (const line of lines) {
-                  if (line.trim()) console.error("[claude stderr]", line);
+                  if (line.trim()) logErr("[claude stderr]", line);
                 }
               }
-              if (stderrBuf.trim()) console.error("[claude stderr]", stderrBuf);
+              if (stderrBuf.trim()) logErr("[claude stderr]", stderrBuf);
             })();
 
             activeProcesses.set(sessionId, proc);
@@ -466,7 +470,7 @@ Create or update the Three.js scene based on the latest user request. Write the 
                 if (!line.trim()) continue;
                 try {
                   const event = JSON.parse(line);
-                  console.log("[claude event]", event.type, JSON.stringify(event).substring(0, 300));
+                  log("[claude event]", event.type, JSON.stringify(event).substring(0, 300));
 
                   if (event.type === "assistant" && event.message) {
                     for (const block of event.message.content || []) {
@@ -493,17 +497,17 @@ Create or update the Three.js scene based on the latest user request. Write the 
                     );
                   }
                 } catch (parseErr) {
-                  console.warn("[claude] Non-JSON line:", line.substring(0, 200));
+                  logWarn("[claude] Non-JSON line:", line.substring(0, 200));
                 }
               }
             }
 
             const exitCode = await proc.exited;
-            console.log("[claude] Process exited with code:", exitCode);
+            log("[claude] Process exited with code:", exitCode);
             activeProcesses.delete(sessionId);
 
             // Save assistant response
-            console.log("[claude] Response length:", assistantResponse.length);
+            log("[claude] Response length:", assistantResponse.length);
             if (assistantResponse) {
               await sql`INSERT INTO messages (session_id, role, content) VALUES (${sessionId}, 'assistant', ${assistantResponse.substring(0, 10000)})`;
             }
@@ -514,13 +518,13 @@ Create or update the Three.js scene based on the latest user request. Write the 
             try {
               await stat(indexPath);
               sceneReady = true;
-              console.log("[claude] Scene file created:", indexPath);
+              log("[claude] Scene file created:", indexPath);
             } catch {
-              console.warn("[claude] No index.html found at:", indexPath);
+              logWarn("[claude] No index.html found at:", indexPath);
               // List what files were created
               try {
                 const dirFiles = await readdir(sessionDir);
-                console.log("[claude] Files in session dir:", dirFiles);
+                log("[claude] Files in session dir:", dirFiles);
               } catch { }
             }
 
@@ -535,7 +539,7 @@ Create or update the Three.js scene based on the latest user request. Write the 
               )
             );
           } catch (err) {
-            console.error("[claude] Stream error:", err);
+            logErr("[claude] Stream error:", err);
             safeEnqueue(
               encoder.encode(`data: ${JSON.stringify({ type: "error", message: err.message })}\n\n`)
             );
@@ -635,7 +639,7 @@ Create or update the Three.js scene based on the latest user request. Write the 
 
         if (!tokenRes.ok) {
           const errBody = await tokenRes.text();
-          console.error("[auth] Token exchange failed:", tokenRes.status, errBody);
+          logErr("[auth] Token exchange failed:", tokenRes.status, errBody);
           return json({ error: "Token exchange failed. The code may be invalid or expired." }, 400);
         }
 
@@ -654,11 +658,11 @@ Create or update the Three.js scene based on the latest user request. Write the 
         };
         await writeFile(CREDENTIALS_PATH, JSON.stringify(credentials, null, 2));
         await saveCredsToDb(credentials.claudeAiOauth);
-        console.log("[auth] OAuth tokens saved to", CREDENTIALS_PATH);
+        log("[auth] OAuth tokens saved to", CREDENTIALS_PATH);
 
         return json({ ok: true });
       } catch (err) {
-        console.error("[auth] Code exchange error:", err);
+        logErr("[auth] Code exchange error:", err);
         return json({ error: err.message }, 500);
       }
     }
@@ -681,4 +685,4 @@ Create or update the Three.js scene based on the latest user request. Write the 
   },
 });
 
-console.log(`OpenWorld server running on http://localhost:${PORT}`);
+log(`OpenWorld server running on http://localhost:${PORT}`);
