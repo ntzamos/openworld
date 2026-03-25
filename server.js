@@ -183,7 +183,7 @@ serve({
     }
 
     // Serve public static files
-    if (pathname.startsWith("/public/") || pathname.startsWith("/fonts/") || pathname.endsWith(".css") || pathname.endsWith(".js") || pathname.endsWith(".woff2")) {
+    if (pathname.startsWith("/public/") || pathname.startsWith("/fonts/") || pathname.endsWith(".css") || pathname.endsWith(".js") || pathname.endsWith(".woff2") || pathname.endsWith(".png") || pathname.endsWith(".jpg") || pathname.endsWith(".svg") || pathname.endsWith(".ico")) {
       const filePath = pathname.startsWith("/public/")
         ? join(import.meta.dir, pathname)
         : join(import.meta.dir, "public", pathname);
