@@ -28,6 +28,21 @@
     document.fonts.ready.then(() => document.body.classList.remove('fonts-loading'));
   </script>
   <div id="app">
+    <!-- Disclaimer Modal -->
+    <div id="disclaimer-modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <h2>Welcome to OpenWorld</h2>
+        <p style="line-height:1.6;color:var(--text-secondary)">This is a public demo running on our shared Claude account. By using this app, you acknowledge that:</p>
+        <ul style="line-height:1.8;color:var(--text-secondary);font-size:0.9rem;padding-left:20px;margin:8px 0">
+          <li>All generated scenes are <strong>public</strong> and visible to other users</li>
+          <li>Do not include any personal or sensitive information in your prompts</li>
+          <li>Generations may be slow or unavailable due to shared rate limits</li>
+        </ul>
+        <button id="btn-accept-disclaimer" class="btn btn-primary" style="width:100%;margin-top:8px">I understand, let's go</button>
+      </div>
+    </div>
+
     <!-- Auth Modal -->
     <div id="auth-modal" class="modal hidden">
       <div class="modal-backdrop"></div>

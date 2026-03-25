@@ -24,6 +24,7 @@ const landingAuthText = $("#landing-auth-text");
 
 // ── Init ─────────────────────────────────────────────────
 async function init() {
+  showDisclaimer();
   await loadSessions();
   checkAuth();
   setupEvents();
@@ -700,6 +701,17 @@ async function loadPublicSessions() {
   } catch {
     $("#public-sessions").style.display = "none";
   }
+}
+
+// ── Disclaimer ───────────────────────────────────────────
+function showDisclaimer() {
+  if (localStorage.getItem("openworld_disclaimer_accepted")) return;
+  const modal = $("#disclaimer-modal");
+  modal.classList.remove("hidden");
+  $("#btn-accept-disclaimer").addEventListener("click", () => {
+    localStorage.setItem("openworld_disclaimer_accepted", "1");
+    modal.classList.add("hidden");
+  });
 }
 
 // ── Start ────────────────────────────────────────────────
