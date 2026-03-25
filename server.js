@@ -51,7 +51,7 @@ async function restoreCredsFromDb() {
     const credDir = join(homedir(), ".claude");
     await mkdir(credDir, { recursive: true });
     let credentials = {};
-    try { credentials = JSON.parse(await readFile(CREDENTIALS_PATH, "utf8")); } catch {}
+    try { credentials = JSON.parse(await readFile(CREDENTIALS_PATH, "utf8")); } catch { }
     credentials.claudeAiOauth = oauthData;
     await writeFile(CREDENTIALS_PATH, JSON.stringify(credentials, null, 2));
     console.log("[auth] Credentials restored from database to", CREDENTIALS_PATH);
@@ -178,7 +178,7 @@ serve({
             headers: { "Content-Type": MIME_TYPES[ext] || "application/octet-stream" },
           });
         }
-      } catch {}
+      } catch { }
       return new Response("Not found", { status: 404 });
     }
 
@@ -195,7 +195,7 @@ serve({
             headers: { "Content-Type": MIME_TYPES[ext] || "application/octet-stream" },
           });
         }
-      } catch {}
+      } catch { }
     }
 
     // ── API: Sessions ─────────────────────────────────────
@@ -221,7 +221,7 @@ serve({
         try {
           await stat(join(SESSIONS_DIR, s.id, "index.html"));
           publicSessions.push(s);
-        } catch {}
+        } catch { }
         if (publicSessions.length >= 8) break;
       }
       return json(publicSessions);
@@ -255,7 +255,7 @@ serve({
         const dir = join(SESSIONS_DIR, sessionId);
         const proc = spawn(["rm", "-rf", dir]);
         await proc.exited;
-      } catch {}
+      } catch { }
       return json({ ok: true });
     }
 
@@ -398,7 +398,7 @@ Create or update the Three.js scene based on the latest user request. Write the 
           }
           function safeClose() {
             if (!controllerClosed) {
-              try { controller.close(); } catch {}
+              try { controller.close(); } catch { }
               controllerClosed = true;
             }
           }
@@ -407,7 +407,7 @@ Create or update the Three.js scene based on the latest user request. Write the 
 
             await refreshClaudeToken();
 
-            const claudeModel = process.env.CLAUDE_MODEL || "claude-sonnet-4-6-20250514";
+            const claudeModel = process.env.CLAUDE_MODEL || "claude-sonnet-4-6";
             console.log("[claude] Model:", claudeModel);
             console.log("[claude] CWD:", sessionDir);
             console.log("[claude] Prompt size:", systemPrompt.length, "chars");
@@ -522,7 +522,7 @@ Create or update the Three.js scene based on the latest user request. Write the 
               try {
                 const dirFiles = await readdir(sessionDir);
                 console.log("[claude] Files in session dir:", dirFiles);
-              } catch {}
+              } catch { }
             }
 
             safeEnqueue(
@@ -646,7 +646,7 @@ Create or update the Three.js scene based on the latest user request. Write the 
         const credDir = join(homedir(), ".claude");
         await mkdir(credDir, { recursive: true });
         let credentials = {};
-        try { credentials = JSON.parse(await readFile(CREDENTIALS_PATH, "utf8")); } catch {}
+        try { credentials = JSON.parse(await readFile(CREDENTIALS_PATH, "utf8")); } catch { }
         credentials.claudeAiOauth = {
           accessToken: tokens.access_token,
           refreshToken: tokens.refresh_token ?? null,
@@ -667,7 +667,7 @@ Create or update the Three.js scene based on the latest user request. Write the 
     if (pathname === "/api/claude-auth/logout" && req.method === "POST") {
       try {
         let credentials = {};
-        try { credentials = JSON.parse(await readFile(CREDENTIALS_PATH, "utf8")); } catch {}
+        try { credentials = JSON.parse(await readFile(CREDENTIALS_PATH, "utf8")); } catch { }
         delete credentials.claudeAiOauth;
         await writeFile(CREDENTIALS_PATH, JSON.stringify(credentials, null, 2));
         await deleteCredsFromDb();
