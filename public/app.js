@@ -143,7 +143,6 @@ function renderSessionList() {
       (s) => `
     <div class="session-item ${s.id === currentSessionId ? "active" : ""}" data-id="${s.id}">
       <span>${escapeHtml(s.title)}</span>
-      <button class="delete-btn" data-id="${s.id}" title="Delete">&times;</button>
     </div>
   `
     )
@@ -161,7 +160,6 @@ function renderDrawerSessions() {
       (s) => `
     <div class="session-item ${s.id === currentSessionId ? "active" : ""}" data-id="${s.id}">
       <span>${escapeHtml(s.title)}</span>
-      <button class="delete-btn" data-id="${s.id}" title="Delete">&times;</button>
     </div>
   `
     )
