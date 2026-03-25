@@ -347,7 +347,8 @@ GEOMETRY OPTIMIZATION:
 - Chunk large worlds — only render geometry near the camera, dispose distant chunks
 
 PHYSICS & COLLISION (required for games/vehicles/interactive scenes):
-- Use cannon-es via CDN: https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.min.js (loaded as window.CANNON)
+- Use cannon.js via CDN: https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js (sets window.CANNON globally)
+- Load cannon.js with a regular <script> tag BEFORE your scene code — do NOT use ES module imports
 - Create a CANNON.World with gravity (0, -9.82, 0) and broadphase
 - Every solid object needs BOTH a Three.js mesh AND a CANNON.Body — sync positions each frame
 - Terrain: use CANNON.Heightfield from the same height data used for the Three.js geometry
@@ -406,23 +407,28 @@ Create or update the Three.js scene based on the latest user request. Write the 
 
             await refreshClaudeToken();
 
-            const claudeArgs = [
-              "claude",
-              "--dangerously-skip-permissions",
-              "--output-format", "stream-json",
-              "--verbose",
-              "--max-turns", "3",
-              "-p", systemPrompt,
-            ];
-            console.log("[claude] Spawning:", claudeArgs.join(" ").substring(0, 200) + "...");
+            const claudeModel = process.env.CLAUDE_MODEL || "claude-sonnet-4-6-20250514";
+            console.log("[claude] Model:", claudeModel);
             console.log("[claude] CWD:", sessionDir);
+            console.log("[claude] Prompt size:", systemPrompt.length, "chars");
 
-            const proc = spawn(claudeArgs, {
-              cwd: sessionDir,
-              stdout: "pipe",
-              stderr: "pipe",
-              env: { ...process.env, HOME: homedir() },
-            });
+            const proc = spawn(
+              [
+                "claude",
+                "--dangerously-skip-permissions",
+                "--output-format", "stream-json",
+                "--verbose",
+                "--model", claudeModel,
+                "--max-turns", "3",
+                "-p", systemPrompt,
+              ],
+              {
+                cwd: sessionDir,
+                stdout: "pipe",
+                stderr: "pipe",
+                env: { ...process.env, HOME: homedir() },
+              }
+            );
 
             // Log stderr in real-time
             (async () => {
