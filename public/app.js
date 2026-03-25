@@ -3,6 +3,7 @@ let currentSessionId = null;
 let sessions = [];
 let isGenerating = false;
 let pendingFiles = []; // files attached before sending
+const isLocalDev = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 
 // ── DOM refs ─────────────────────────────────────────────
 const $ = (sel) => document.querySelector(sel);
@@ -137,18 +138,22 @@ async function loadSessions() {
   } catch {}
 }
 
+function deleteBtn(id) {
+  return isLocalDev ? `<button class="delete-btn" data-id="${id}" title="Delete">&times;</button>` : "";
+}
+
 function renderSessionList() {
   const html = sessions
     .map(
       (s) => `
     <div class="session-item ${s.id === currentSessionId ? "active" : ""}" data-id="${s.id}">
       <span>${escapeHtml(s.title)}</span>
+      ${deleteBtn(s.id)}
     </div>
   `
     )
     .join("");
   sessionList.innerHTML = html;
-  // Also update drawer
   renderDrawerSessions();
 }
 
@@ -160,6 +165,7 @@ function renderDrawerSessions() {
       (s) => `
     <div class="session-item ${s.id === currentSessionId ? "active" : ""}" data-id="${s.id}">
       <span>${escapeHtml(s.title)}</span>
+      ${deleteBtn(s.id)}
     </div>
   `
     )
@@ -212,12 +218,13 @@ async function loadSession(sessionId) {
     appendMessage(msg.role, msg.content);
   }
 
-  // Check if session is currently generating
+  // Check if session is currently generating — poll until done
   try {
     const statusRes = await fetch(`/api/sessions/${sessionId}/status`);
     const statusData = await statusRes.json();
     if (statusData.generating) {
       showLoading();
+      pollSessionCompletion(sessionId);
       return;
     }
   } catch {}
@@ -278,11 +285,12 @@ async function sendMessage(message) {
   // Show loading
   showLoading();
   isGenerating = true;
+  const generatingSessionId = currentSessionId;
 
   try {
     // Build form data with files
     const formData = new FormData();
-    formData.append("sessionId", currentSessionId);
+    formData.append("sessionId", generatingSessionId);
     formData.append("message", message);
     for (const file of pendingFiles) {
       formData.append("files", file);
@@ -320,26 +328,34 @@ async function sendMessage(message) {
             updateLoadingLog(fullResponse);
           } else if (event.type === "done") {
             const responseText = event.message || fullResponse;
-            if (event.sceneReady) {
-              showScene(event.scenePath + "?t=" + Date.now());
-              appendMessage("assistant", responseText || "Scene created!");
-            } else {
-              showEmptyState();
-              appendMessage("assistant", responseText || "Something went wrong - no scene was generated.");
+            // Only update UI if still viewing this session
+            if (currentSessionId === generatingSessionId) {
+              if (event.sceneReady) {
+                showScene(event.scenePath + "?t=" + Date.now());
+              } else {
+                showEmptyState();
+              }
+              appendMessage("assistant", responseText || (event.sceneReady ? "Scene created!" : "Something went wrong - no scene was generated."));
             }
           } else if (event.type === "error") {
-            showEmptyState();
-            appendMessage("assistant", "Error: " + event.message);
+            if (currentSessionId === generatingSessionId) {
+              showEmptyState();
+              appendMessage("assistant", "Error: " + event.message);
+            }
           }
         } catch {}
       }
     }
   } catch (err) {
-    showEmptyState();
-    appendMessage("assistant", "Connection error: " + err.message);
+    if (currentSessionId === generatingSessionId) {
+      showEmptyState();
+      appendMessage("assistant", "Connection error: " + err.message);
+    }
   } finally {
     isGenerating = false;
-    hideLoading();
+    if (currentSessionId === generatingSessionId) {
+      hideLoading();
+    }
     await loadSessions(); // Refresh session list for updated titles
   }
 }
@@ -757,6 +773,50 @@ async function loadPublicSessions() {
   } catch {
     $("#public-sessions").style.display = "none";
   }
+}
+
+// ── Session Polling ──────────────────────────────────────
+let pollTimer = null;
+
+function pollSessionCompletion(sessionId) {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    // Stop polling if user navigated away
+    if (currentSessionId !== sessionId) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+      return;
+    }
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}/status`);
+      const data = await res.json();
+      if (!data.generating) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+        hideLoading();
+        // Reload session to get new messages and scene
+        const sessRes = await fetch(`/api/sessions/${sessionId}`);
+        const sessData = await sessRes.json();
+        messagesEl.innerHTML = "";
+        for (const msg of sessData.messages || []) {
+          appendMessage(msg.role, msg.content);
+        }
+        // Try to load scene
+        const scenePath = `/sessions/${sessionId}/index.html`;
+        try {
+          const check = await fetch(scenePath, { method: "HEAD" });
+          if (check.ok) {
+            showScene(scenePath + "?t=" + Date.now());
+          } else {
+            showEmptyState();
+          }
+        } catch {
+          showEmptyState();
+        }
+        await loadSessions();
+      }
+    } catch {}
+  }, 3000);
 }
 
 // ── Disclaimer ───────────────────────────────────────────
