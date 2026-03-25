@@ -67,6 +67,36 @@ async function deleteCredsFromDb() {
   console.log("[auth] Credentials deleted from database");
 }
 
+async function generateSessionTitle(sessionId, userMessage) {
+  try {
+    const proc = spawn(
+      [
+        "claude",
+        "--dangerously-skip-permissions",
+        "--output-format", "json",
+        "-p", `Generate a short creative title (max 5 words, no quotes, no punctuation) for a 3D scene request: "${userMessage.substring(0, 200)}". Reply with ONLY the title, nothing else.`,
+      ],
+      { stdout: "pipe", stderr: "pipe", env: { ...process.env, HOME: homedir() } }
+    );
+    const stdout = await new Response(proc.stdout).text();
+    await proc.exited;
+    try {
+      const data = JSON.parse(stdout.trim());
+      const title = (data.result || "").trim().substring(0, 60) || userMessage.substring(0, 60);
+      await sql`UPDATE sessions SET title = ${title} WHERE id = ${sessionId}`;
+      console.log("[title] Generated:", title);
+    } catch {
+      // Fallback to truncated message
+      const title = userMessage.substring(0, 60) + (userMessage.length > 60 ? "..." : "");
+      await sql`UPDATE sessions SET title = ${title} WHERE id = ${sessionId}`;
+    }
+  } catch (err) {
+    console.error("[title] Generation failed:", err.message);
+    const title = userMessage.substring(0, 60) + (userMessage.length > 60 ? "..." : "");
+    await sql`UPDATE sessions SET title = ${title} WHERE id = ${sessionId}`;
+  }
+}
+
 function generatePKCE() {
   const verifier = randomBytes(32).toString("base64url");
   const challenge = createHash("sha256").update(verifier).digest("base64url");
@@ -180,6 +210,23 @@ serve({
       return json(sessions);
     }
 
+    // Public sessions (ones with a generated scene)
+    if (pathname === "/api/sessions/public" && req.method === "GET") {
+      const allSessions = await sql`
+        SELECT id, title, created_at FROM sessions ORDER BY updated_at DESC LIMIT 20
+      `;
+      // Filter to only those with an index.html
+      const publicSessions = [];
+      for (const s of allSessions) {
+        try {
+          await stat(join(SESSIONS_DIR, s.id, "index.html"));
+          publicSessions.push(s);
+        } catch {}
+        if (publicSessions.length >= 8) break;
+      }
+      return json(publicSessions);
+    }
+
     // Create session
     if (pathname === "/api/sessions" && req.method === "POST") {
       const { title } = await req.json();
@@ -248,11 +295,10 @@ serve({
       await sql`INSERT INTO messages (session_id, role, content) VALUES (${sessionId}, 'user', ${msgContent})`;
       await sql`UPDATE sessions SET updated_at = NOW() WHERE id = ${sessionId}`;
 
-      // Update title from first message
+      // Generate AI title on first message (async, don't block)
       const [msgCount] = await sql`SELECT count(*) as c FROM messages WHERE session_id = ${sessionId} AND role = 'user'`;
       if (parseInt(msgCount.c) === 1) {
-        const title = message.substring(0, 60) + (message.length > 60 ? "..." : "");
-        await sql`UPDATE sessions SET title = ${title} WHERE id = ${sessionId}`;
+        generateSessionTitle(sessionId, message);
       }
 
       // Get conversation history for context
@@ -300,9 +346,20 @@ GEOMETRY OPTIMIZATION:
 - Use LOD (THREE.LOD) for complex scenes — high detail near camera, simplified far away
 - Chunk large worlds — only render geometry near the camera, dispose distant chunks
 
+PHYSICS & COLLISION (required for games/vehicles/interactive scenes):
+- Use cannon-es via CDN: https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.min.js (loaded as window.CANNON)
+- Create a CANNON.World with gravity (0, -9.82, 0) and broadphase
+- Every solid object needs BOTH a Three.js mesh AND a CANNON.Body — sync positions each frame
+- Terrain: use CANNON.Heightfield from the same height data used for the Three.js geometry
+- Vehicles: use CANNON.RigidVehicle or CANNON.RaycastVehicle for realistic car physics
+- Objects (trees, rocks, walls): add static CANNON.Body with appropriate shapes (box, sphere, cylinder)
+- In the animation loop: world.step(1/60, deltaTime, 3), then copy body.position/quaternion to mesh
+- Player/character: use a CANNON.Body sphere or capsule with damping
+- ALWAYS implement ground collision — nothing should fall through the terrain
+
 PROCEDURAL GENERATION (prefer over manual placement):
 - Generate terrain heights with layered sine waves or simplex noise
-- Scatter objects (trees, rocks) procedurally using seeded random distributions
+- Scatter objects (trees, rocks) procedurally using seeded random distributions — add collision bodies for each
 - Create water with a simple animated plane + vertex displacement in the animation loop
 - Build roads/paths with curve-based extrusion (THREE.TubeGeometry along a CatmullRomCurve3)
 

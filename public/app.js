@@ -27,6 +27,7 @@ async function init() {
   await loadSessions();
   checkAuth();
   setupEvents();
+  loadPublicSessions();
 
   // Load session from URL param
   const params = new URLSearchParams(window.location.search);
@@ -666,6 +667,38 @@ async function checkAuthAndShow() {
   } catch {
     showAuthModal();
     setLandingAuth(false);
+  }
+}
+
+// ── Public Sessions Gallery ──────────────────────────────
+async function loadPublicSessions() {
+  try {
+    const res = await fetch("/api/sessions/public");
+    const publicSessions = await res.json();
+    const grid = $("#public-sessions-grid");
+    if (!publicSessions.length) {
+      $("#public-sessions").style.display = "none";
+      return;
+    }
+    grid.innerHTML = publicSessions
+      .map((s) => {
+        const date = new Date(s.created_at).toLocaleDateString();
+        return `
+          <div class="session-card" data-id="${s.id}">
+            <iframe class="session-card-preview" src="/sessions/${s.id}/index.html" sandbox="allow-scripts" loading="lazy" tabindex="-1"></iframe>
+            <div class="session-card-info">
+              <div class="session-card-title">${escapeHtml(s.title)}</div>
+              <div class="session-card-date">${date}</div>
+            </div>
+          </div>`;
+      })
+      .join("");
+
+    grid.querySelectorAll(".session-card").forEach((card) => {
+      card.addEventListener("click", () => loadSession(card.dataset.id));
+    });
+  } catch {
+    $("#public-sessions").style.display = "none";
   }
 }
 
