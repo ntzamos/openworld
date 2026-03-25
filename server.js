@@ -357,6 +357,13 @@ PHYSICS & COLLISION (required for games/vehicles/interactive scenes):
 - Player/character: use a CANNON.Body sphere or capsule with damping
 - ALWAYS implement ground collision — nothing should fall through the terrain
 
+MOBILE & SENSORS:
+- For mobile games, add on-screen touch controls (virtual joystick/buttons) using HTML overlay divs
+- Accelerometer/gyroscope are available in the iframe — use DeviceOrientationEvent for tilt controls
+- On iOS, MUST call DeviceOrientationEvent.requestPermission() on a user tap gesture before accessing orientation data
+- Always feature-detect sensors: if (window.DeviceOrientationEvent) { ... }
+- Provide fallback controls (touch/keyboard) when sensors are not available
+
 PROCEDURAL GENERATION (prefer over manual placement):
 - Generate terrain heights with layered sine waves or simplex noise
 - Scatter objects (trees, rocks) procedurally using seeded random distributions — add collision bodies for each
