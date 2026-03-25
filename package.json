@@ -1,0 +1,13 @@
+{
+  "name": "openworld",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "bun run server.js",
+    "dev": "bun --watch server.js"
+  },
+  "dependencies": {
+    "postgres": "^3.4.5",
+    "uuid": "^11.1.0"
+  }
+}

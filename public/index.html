@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenWorld - 3D Creator</title>
+  <link rel="preload" href="/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/fonts.css">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="fonts-loading">
+  <script>
+    document.fonts.ready.then(() => document.body.classList.remove('fonts-loading'));
+  </script>
+  <div id="app">
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <h2>Claude Authentication</h2>
+        <p id="auth-status-text">Checking authentication...</p>
+        <div id="auth-login-section" class="hidden">
+          <button id="btn-start-login" class="btn btn-primary">Connect with Claude</button>
+        </div>
+        <div id="auth-code-section" class="hidden">
+          <p>A browser window has opened. After authorizing, paste the code below:</p>
+          <input type="text" id="auth-code-input" placeholder="Paste authorization code..." />
+          <button id="btn-submit-code" class="btn btn-primary">Submit Code</button>
+        </div>
+        <div id="auth-logged-in" class="hidden">
+          <p class="success">Connected to Claude</p>
+          <button id="btn-logout" class="btn btn-secondary">Disconnect</button>
+          <button id="btn-close-auth" class="btn btn-primary">Continue</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Landing / Chat Input (centered) -->
+    <div id="landing" class="landing">
+      <div class="landing-content">
+        <h1>Hey, you. Ready to dive in?</h1>
+        <div id="attachments-landing" class="attachments"></div>
+        <div class="chat-input-container">
+          <input type="file" id="file-input-landing" class="file-input-hidden" multiple accept="image/*,.pdf,.txt,.json,.obj,.gltf,.glb,.fbx" />
+          <button class="btn-icon btn-attach" id="btn-attach-landing" title="Attach file">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <input type="text" id="prompt-input" placeholder="Build anything" autocomplete="off" />
+          <button class="btn-icon btn-submit" id="btn-submit" title="Submit">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
+          </button>
+        </div>
+        <div class="quick-examples">
+          <button class="example-btn" data-prompt="A spinning galaxy with thousands of stars and nebula particles">Spinning Galaxy</button>
+          <button class="example-btn" data-prompt="A low-poly island with water, palm trees, and a sunset sky">Low-Poly Island</button>
+          <button class="example-btn" data-prompt="A playable 3D maze game with first-person controls and a timer">3D Maze Game</button>
+          <button class="example-btn" data-prompt="An animated robot character that waves and walks around a room">Animated Robot</button>
+        </div>
+      </div>
+      <div id="landing-auth-status" class="landing-auth-status">
+        <span id="landing-auth-dot" class="auth-dot"></span>
+        <span id="landing-auth-text">Checking Claude connection...</span>
+      </div>
+    </div>
+
+    <!-- Mobile Sessions Drawer -->
+    <div id="drawer-backdrop" class="drawer-backdrop hidden"></div>
+    <div id="sessions-drawer" class="sessions-drawer">
+      <div class="drawer-header">
+        <h3>Sessions</h3>
+        <button id="btn-close-drawer" class="btn-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="drawer-session-list" class="drawer-session-list"></div>
+    </div>
+
+    <!-- Main Layout (after first message) -->
+    <div id="workspace" class="workspace hidden">
+      <!-- Sidebar -->
+      <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <button id="btn-menu" class="btn-icon" title="Sessions">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <h2 id="btn-home" style="cursor:pointer">OpenWorld</h2>
+          </div>
+          <div style="display:flex;gap:4px">
+            <button id="btn-toggle-sidebar" class="btn-icon mobile-only" title="Toggle sidebar">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <button id="btn-new-session" class="btn-icon" title="New session">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+          </div>
+        </div>
+        <div id="session-list" class="session-list" style="display: none;"></div>
+        <div class="sidebar-chat">
+          <div id="messages" class="messages"></div>
+          <div id="attachments-sidebar" class="attachments"></div>
+          <div class="chat-input-container sidebar-input">
+            <input type="file" id="file-input-sidebar" class="file-input-hidden" multiple accept="image/*,.pdf,.txt,.json,.obj,.gltf,.glb,.fbx" />
+            <button class="btn-icon btn-attach" id="btn-attach-sidebar" title="Attach file">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+            <input type="text" id="followup-input" placeholder="Follow up..." autocomplete="off" />
+            <button class="btn-icon btn-submit" id="btn-followup" title="Send">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="sidebar-footer" id="sidebar-auth-status">
+          <span id="sidebar-auth-dot" class="auth-dot"></span>
+          <span id="sidebar-auth-text">Checking...</span>
+        </div>
+      </aside>
+
+      <!-- Main content area -->
+      <main id="main-content" class="main-content">
+        <div id="loading-overlay" class="loading-overlay hidden">
+          <div class="loading-spinner"></div>
+          <p id="loading-text">Creating your scene...</p>
+          <div id="loading-log" class="loading-log"></div>
+        </div>
+        <iframe id="scene-frame" class="scene-frame hidden" sandbox="allow-scripts allow-same-origin"></iframe>
+        <div id="empty-state" class="empty-state">
+          <p>Your 3D scene will appear here</p>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>
