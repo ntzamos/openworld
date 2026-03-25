@@ -383,10 +383,68 @@ function appendMessage(role, content) {
   messagesEl.scrollTop = messagesEl.scrollHeight;
 }
 
+let sceneErrors = [];
+
 function showScene(path) {
+  sceneErrors = [];
   sceneFrame.src = path;
   sceneFrame.classList.remove("hidden");
   emptyState.classList.add("hidden");
+  hideErrorBanner();
+
+  sceneFrame.onload = () => {
+    try {
+      const iframeWindow = sceneFrame.contentWindow;
+      if (!iframeWindow) return;
+      iframeWindow.onerror = (msg, _source, line) => {
+        console.error("[scene error]", msg, "at line", line);
+        sceneErrors.push(`${msg} (line ${line})`);
+        showErrorBanner();
+        return true;
+      };
+      iframeWindow.addEventListener("unhandledrejection", (e) => {
+        console.error("[scene promise error]", e.reason);
+        sceneErrors.push(String(e.reason));
+        showErrorBanner();
+      });
+    } catch {}
+  };
+}
+
+function showErrorBanner() {
+  let banner = $("#error-banner");
+  if (!banner) {
+    banner = document.createElement("div");
+    banner.id = "error-banner";
+    banner.className = "error-banner";
+    banner.innerHTML = `
+      <div class="error-banner-content">
+        <span class="error-banner-icon">!</span>
+        <span class="error-banner-text">Scene encountered errors</span>
+        <button id="btn-resolve-error" class="btn btn-sm btn-primary">Resolve</button>
+        <button id="btn-dismiss-error" class="btn-icon btn-dismiss">&times;</button>
+      </div>
+    `;
+    $(".main-content").appendChild(banner);
+    $("#btn-dismiss-error").addEventListener("click", hideErrorBanner);
+    $("#btn-resolve-error").addEventListener("click", resolveSceneErrors);
+  }
+  banner.classList.remove("hidden");
+  $(".error-banner-text").textContent = `Scene error: ${sceneErrors[sceneErrors.length - 1]}`;
+}
+
+function hideErrorBanner() {
+  const banner = $("#error-banner");
+  if (banner) banner.classList.add("hidden");
+}
+
+async function resolveSceneErrors() {
+  if (!currentSessionId || !sceneErrors.length || isGenerating) return;
+  hideErrorBanner();
+  const errorSummary = sceneErrors.join("\n");
+  const resolvePrompt = `The scene has JavaScript errors that need fixing:\n${errorSummary}\n\nPlease fix these errors in the index.html file.`;
+  sendMessage(resolvePrompt);
+  sceneErrors = [];
 }
 
 function showEmptyState() {

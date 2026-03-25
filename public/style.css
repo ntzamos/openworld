@@ -655,6 +655,58 @@ body {
   background: #bbb;
 }
 
+/* ── Error Banner ─────────────────────────────────────── */
+.error-banner {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  max-width: 90%;
+}
+
+.error-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid #fca5a5;
+  border-radius: 12px;
+  padding: 10px 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  font-size: 0.85rem;
+}
+
+.error-banner-icon {
+  width: 24px;
+  height: 24px;
+  background: #dc2626;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.error-banner-text {
+  flex: 1;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 400px;
+}
+
+.btn-dismiss {
+  width: 28px;
+  height: 28px;
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+}
+
 /* ── Public Sessions Gallery ──────────────────────────── */
 .public-sessions {
   margin-top: 40px;
