@@ -277,17 +277,34 @@ IMPORTANT RULES:
 - If the user asks for a game, include game logic, scoring, and controls
 - Background should be a nice gradient or dark color, NOT white
 
-PERFORMANCE RULES (critical):
+PERFORMANCE RULES (critical — target 60fps on mobile):
 - Use WebGL2 renderer: new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" })
-- Keep total polygon count under 50,000 — use low-poly style, simple geometries
-- Use BufferGeometry, never Geometry
+- Set renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+- Keep total polygon count under 50,000 — low-poly aesthetic IS the style
+- Use BufferGeometry exclusively, never legacy Geometry
 - Reuse materials — create once, share across meshes
-- Limit shadow-casting lights to 1-2 max, use shadow map size 1024 max
-- Use InstancedMesh for repeated objects (trees, particles, buildings)
-- Limit draw calls — merge static geometries where possible
-- For particles use Points with BufferGeometry, not individual meshes
-- Set renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)) to cap on retina
-- Dispose textures/geometries/materials when replacing scenes
+
+RENDERING TECHNIQUES (use these instead of expensive features):
+- AVOID real-time shadows — use fog (THREE.FogExp2), vertex colors, and ambient occlusion tricks for depth
+- Use vertex colors (geometry.setAttribute('color', ...)) instead of textures wherever possible
+- Use THREE.Fog or THREE.FogExp2 for atmosphere and to hide draw distance
+- Use simple gradient sky via shader or large sphere with vertex colors — no skybox textures
+- Prefer hemisphere light + directional light (no shadow) over complex lighting setups
+- Use emissive materials for glowing effects instead of extra point lights
+
+GEOMETRY OPTIMIZATION:
+- Use InstancedMesh for ALL repeated objects (trees, rocks, buildings, particles, grass)
+- Merge static geometries with BufferGeometryUtils.mergeGeometries() to reduce draw calls
+- For particles/effects use THREE.Points with BufferGeometry, never individual meshes
+- For terrain use procedural generation: create geometry from noise functions (simplex/perlin), not pre-modeled
+- Use LOD (THREE.LOD) for complex scenes — high detail near camera, simplified far away
+- Chunk large worlds — only render geometry near the camera, dispose distant chunks
+
+PROCEDURAL GENERATION (prefer over manual placement):
+- Generate terrain heights with layered sine waves or simplex noise
+- Scatter objects (trees, rocks) procedurally using seeded random distributions
+- Create water with a simple animated plane + vertex displacement in the animation loop
+- Build roads/paths with curve-based extrusion (THREE.TubeGeometry along a CatmullRomCurve3)
 
 RESPONSE RULES:
 - In your text response, ONLY describe what the scene contains and its features
