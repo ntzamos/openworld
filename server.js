@@ -226,7 +226,6 @@ serve({
           await stat(join(SESSIONS_DIR, s.id, "index.html"));
           publicSessions.push(s);
         } catch { }
-        if (publicSessions.length >= 8) break;
       }
       return json(publicSessions);
     }
