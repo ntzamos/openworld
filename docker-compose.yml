@@ -28,7 +28,7 @@ services:
       PORT: 3000
     volumes:
       - ./sessions:/app/sessions
-      - claude_config:/root/.claude
+      - claude_config:/home/appuser/.claude
     depends_on:
       db:
         condition: service_healthy

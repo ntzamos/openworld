@@ -8,6 +8,9 @@ RUN apt-get update && apt-get install -y curl && \
     npm install -g @anthropic-ai/claude-code && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Create non-root user
+RUN useradd -m -s /bin/bash appuser
+
 # Install dependencies
 COPY package.json bun.lock* ./
 RUN bun install --production
@@ -15,8 +18,12 @@ RUN bun install --production
 # Copy app
 COPY . .
 
-# Create sessions directory
-RUN mkdir -p /app/sessions
+# Create directories and set ownership
+RUN mkdir -p /app/sessions /home/appuser/.claude && \
+    chown -R appuser:appuser /app /home/appuser/.claude
+
+# Switch to non-root user
+USER appuser
 
 EXPOSE 3000
 CMD ["bun", "run", "server.js"]
