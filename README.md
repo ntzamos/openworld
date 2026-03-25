@@ -6,7 +6,6 @@
 
 [**Try it live**](https://openworld.up.railway.app/)
 
-[![Stars](https://img.shields.io/github/stars/ntzamos/openworld?style=flat-square&color=yellow)](https://github.com/ntzamos/openworld/stargazers)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 [![Bun](https://img.shields.io/badge/runtime-Bun-black?style=flat-square&logo=bun&logoColor=white)](https://bun.sh)
 [![Docker](https://img.shields.io/badge/docker-ready-2496ED?style=flat-square&logo=docker&logoColor=white)](https://hub.docker.com)
