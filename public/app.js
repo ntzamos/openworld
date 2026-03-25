@@ -240,9 +240,11 @@ async function deleteSession(sessionId) {
   await fetch(`/api/sessions/${sessionId}`, { method: "DELETE" });
   sessions = sessions.filter((s) => s.id !== sessionId);
   if (currentSessionId === sessionId) {
-    currentSessionId = null;
-    messagesEl.innerHTML = "";
-    showEmptyState();
+    if (sessions.length > 0) {
+      loadSession(sessions[0].id);
+    } else {
+      showLanding();
+    }
   }
   renderSessionList();
 }

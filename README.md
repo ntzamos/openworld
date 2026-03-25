@@ -4,6 +4,8 @@
 
 **AI-powered 3D scene creator — describe it, Claude builds it.**
 
+[**Try it live**](https://openworld.up.railway.app/)
+
 [![Stars](https://img.shields.io/github/stars/ntzamos/openworld?style=flat-square&color=yellow)](https://github.com/ntzamos/openworld/stargazers)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 [![Bun](https://img.shields.io/badge/runtime-Bun-black?style=flat-square&logo=bun&logoColor=white)](https://bun.sh)

@@ -34,6 +34,39 @@ function json(data, status = 200) {
   });
 }
 
+// ── Credential persistence (DB) ─────────────────────────────
+async function saveCredsToDb(oauthData) {
+  const value = JSON.stringify(oauthData);
+  await sql`INSERT INTO settings (key, value, updated_at) VALUES ('claude_oauth', ${value}, NOW()) ON CONFLICT (key) DO UPDATE SET value = ${value}, updated_at = NOW()`;
+  console.log("[auth] Credentials saved to database");
+}
+
+async function restoreCredsFromDb() {
+  try {
+    const [row] = await sql`SELECT value FROM settings WHERE key = 'claude_oauth'`;
+    if (!row?.value) return false;
+    const oauthData = JSON.parse(row.value);
+    if (!oauthData?.accessToken) return false;
+
+    const credDir = join(homedir(), ".claude");
+    await mkdir(credDir, { recursive: true });
+    let credentials = {};
+    try { credentials = JSON.parse(await readFile(CREDENTIALS_PATH, "utf8")); } catch {}
+    credentials.claudeAiOauth = oauthData;
+    await writeFile(CREDENTIALS_PATH, JSON.stringify(credentials, null, 2));
+    console.log("[auth] Credentials restored from database to", CREDENTIALS_PATH);
+    return true;
+  } catch (err) {
+    console.error("[auth] Failed to restore credentials from DB:", err);
+    return false;
+  }
+}
+
+async function deleteCredsFromDb() {
+  await sql`DELETE FROM settings WHERE key = 'claude_oauth'`;
+  console.log("[auth] Credentials deleted from database");
+}
+
 function generatePKCE() {
   const verifier = randomBytes(32).toString("base64url");
   const challenge = createHash("sha256").update(verifier).digest("base64url");
@@ -63,6 +96,7 @@ async function refreshClaudeToken() {
       expiresAt: new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000).toISOString(),
     };
     await writeFile(CREDENTIALS_PATH, JSON.stringify(credentials, null, 2));
+    await saveCredsToDb(credentials.claudeAiOauth);
     console.log("[auth] Claude token refreshed successfully");
   } catch (err) { console.error("[auth] Token refresh error:", err); }
 }
@@ -86,6 +120,9 @@ const activeProcesses = new Map();
 
 // ── Run migrations on startup ───────────────────────────────
 await runMigrations(sql);
+
+// Restore Claude credentials from DB (survives container redeploys)
+await restoreCredsFromDb();
 
 // ── Server ──────────────────────────────────────────────────
 serve({
@@ -517,6 +554,7 @@ Create or update the Three.js scene based on the latest user request. Write the 
           scopes: CLAUDE_SCOPES.split(" "),
         };
         await writeFile(CREDENTIALS_PATH, JSON.stringify(credentials, null, 2));
+        await saveCredsToDb(credentials.claudeAiOauth);
         console.log("[auth] OAuth tokens saved to", CREDENTIALS_PATH);
 
         return json({ ok: true });
@@ -532,6 +570,7 @@ Create or update the Three.js scene based on the latest user request. Write the 
         try { credentials = JSON.parse(await readFile(CREDENTIALS_PATH, "utf8")); } catch {}
         delete credentials.claudeAiOauth;
         await writeFile(CREDENTIALS_PATH, JSON.stringify(credentials, null, 2));
+        await deleteCredsFromDb();
         return json({ ok: true });
       } catch (err) {
         return json({ error: err.message }, 500);
