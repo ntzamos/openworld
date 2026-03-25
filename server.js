@@ -14,9 +14,9 @@ const DATABASE_URL = process.env.DATABASE_URL || "postgres://openworld:openworld
 const SESSIONS_DIR = join(import.meta.dir, "sessions");
 const CREDENTIALS_PATH = join(homedir(), ".claude", ".credentials.json");
 const IS_DEV = !process.env.RAILWAY_ENVIRONMENT;
-const log = (...args) => { if (IS_DEV) log(...args); };
-const logErr = (...args) => { if (IS_DEV) logErr(...args); };
-const logWarn = (...args) => { if (IS_DEV) logWarn(...args); };
+const log = (...args) => { if (IS_DEV) console.log(...args); };
+const logErr = (...args) => { if (IS_DEV) console.error(...args); };
+const logWarn = (...args) => { if (IS_DEV) console.warn(...args); };
 
 // Claude OAuth constants
 const CLAUDE_TOKEN_URL = "https://platform.claude.com/v1/oauth/token";
