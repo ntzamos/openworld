@@ -3,7 +3,7 @@ let currentSessionId = null;
 let sessions = [];
 let isGenerating = false;
 let pendingFiles = []; // files attached before sending
-const isLocalDev = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+const isLocalDev = true || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 
 // ── DOM refs ─────────────────────────────────────────────
 const $ = (sel) => document.querySelector(sel);
@@ -135,7 +135,7 @@ async function loadSessions() {
     const res = await fetch("/api/sessions");
     sessions = await res.json();
     renderSessionList();
-  } catch {}
+  } catch { }
 }
 
 function deleteBtn(id) {
@@ -227,7 +227,7 @@ async function loadSession(sessionId) {
       pollSessionCompletion(sessionId);
       return;
     }
-  } catch {}
+  } catch { }
 
   // Try to load scene
   const scenePath = `/sessions/${sessionId}/index.html`;
@@ -343,7 +343,7 @@ async function sendMessage(message) {
               appendMessage("assistant", "Error: " + event.message);
             }
           }
-        } catch {}
+        } catch { }
       }
     }
   } catch (err) {
@@ -431,7 +431,7 @@ function showScene(path) {
         });
       `;
       iframeWindow.document.head.appendChild(script);
-    } catch {}
+    } catch { }
   };
 
   sceneFrame.src = path;
@@ -825,7 +825,7 @@ function pollSessionCompletion(sessionId) {
         }
         await loadSessions();
       }
-    } catch {}
+    } catch { }
   }, 3000);
 }
 
